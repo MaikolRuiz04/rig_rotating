@@ -197,7 +197,7 @@ def decr_speed():
     global status
     if status:
         if duty1 > -1000000:
-            duty1 -= 10000
+            duty1 -= 100000
             motor1(duty1)
             
 # manually enter speed
@@ -222,6 +222,20 @@ def set_speed():
                 foreground="red",
             )
         
+# kick-start: brief high-duty pulse to overcome static friction
+KICK_DUTY = 800000    # 80% duty cycle
+KICK_DURATION = 0.3   # seconds
+
+def kick_start(target_duty):
+    if target_duty > 0:
+        pi.hardware_PWM(L_PWM, pwm, 0)
+        pi.hardware_PWM(R_PWM, pwm, KICK_DUTY)
+    elif target_duty < 0:
+        pi.hardware_PWM(R_PWM, pwm, 0)
+        pi.hardware_PWM(L_PWM, pwm, KICK_DUTY)
+    time.sleep(KICK_DURATION)
+    motor1(target_duty)
+
 # start motor control/recording data
 def toggle_on():
     global status
@@ -229,7 +243,10 @@ def toggle_on():
     global temp
     status = 1
     duty1 = temp
-    motor1(duty1)
+    if duty1 != 0:
+        kick_start(duty1)
+    else:
+        motor1(duty1)
     paused.config(text = "")
 
 # pause motor control/recording
